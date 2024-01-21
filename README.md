@@ -38,10 +38,11 @@ minikube image ls
 Создайте ConfigMap в Kubernetes:
 ```
 kubectl create configmap django-config --from-file=.env
+(необходимо указывать полный путь до .env файла /opt/project/.env)
 ```
-Создайте манифесты Deployment и Service:
+Создайте манифесты Deployment, Service и ingress:
 ```
-kubectl apply -f deployment.yaml -f django-service.yaml
+kubectl apply -f deployment.yaml -f django-service.yaml -f ingress.yaml
 ```
 
 ## Примечания
