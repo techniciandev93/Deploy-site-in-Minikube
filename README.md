@@ -20,7 +20,7 @@ cd k8s-test-django/backend_main_django
 Соберите Docker-образ:
 
 ```
-docker build -t django_app:v1 .
+docker build -t django_app:v88 .
 ```
 
 Проверить добавился ли образ в Minikube:
@@ -40,9 +40,9 @@ minikube image ls
 kubectl create configmap django-config --from-file=/путь до файла/.env
 (необходимо указывать полный путь до .env файла /opt/project/.env)
 ```
-Создайте манифесты Deployment, Service и ingress:
+Создайте манифесты Deployment, Service, ingress, Jobs для очистки сессий и миграций :
 ```
-kubectl apply -f deployment.yaml -f django-service.yaml -f ingress.yaml
+kubectl apply -f deployment.yaml -f django-service.yaml -f ingress.yaml -f django-clearsessions.yaml -f migrate-job.yaml 
 ```
 
 ## Примечания
