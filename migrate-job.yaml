@@ -5,7 +5,7 @@ metadata:
   labels:
     app: django
   annotations:
-    configmap.reloader.stakater.com/reload: "django-config"
+    configmap.reloader.com/reload: "django-config"
 spec:
   template:
     spec:
