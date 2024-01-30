@@ -2,96 +2,128 @@
 
 Докеризированный сайт на Django для экспериментов с Kubernetes.
 
-
 ## Как запустить
 
-Перейти в окружение Docker в Minikube:
+1. Перейдите в окружение Docker в Minikube:
 
-```
-eval $(minikube docker-env)
-```
+    ```bash
+    eval $(minikube docker-env)
+    ```
 
-Перейдите в каталог с Docker-образом:
+2. Перейдите в каталог с Docker-образом:
 
-```
-cd k8s-test-django/backend_main_django
-```
+    ```bash
+    cd app/k8s-test-django/backend_main_django
+    ```
 
-Соберите Docker-образ:
+3. Соберите Docker-образ:
 
-```
-docker build -t django_app:v88 .
-```
+    ```bash
+    docker build -t django_app:v88 .
+    ```
 
-Проверить добавился ли образ в Minikube:
+4. Проверьте, добавился ли образ в Minikube:
 
-```
-minikube image ls
-```
+    ```bash
+    minikube image ls
+    ```
 
-Создайте файл .env в корневой директории проекта и добавьте переменные окружения:
+5. Создайте файл `.env` в корневой директории проекта и добавьте переменные окружения:
 
-- `DEBUG` — дебаг-режим
-- `DATABASE_URL` — Данные для базы данных PostgreSQL в формате postgres://USER:PASSWORD@HOST:PORT/NAME
-- `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
+    - `DEBUG` — дебаг-режим
+    - `DATABASE_URL` — Данные для базы данных PostgreSQL в формате postgres://USER:PASSWORD@HOST:PORT/NAME
+    - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
 
-Установите [Helm](https://helm.sh/)
+    Убедитесь, что в переменной `DATABASE_URL` используется хост `postgres.default.svc.cluster.local`.
 
-Разверните PostgreSQL в кластере:
-```
-helm repo add bitnami https://charts.bitnami.com/bitnami
-```
-```
-helm install postgres bitnami/postgresql
-```
-В качестве хоста БД используйте
-```
-postgres.default.svc.cluster.local
-```
-Добавьте его в DATABASE_URL .env файла
+6. Установите [Helm](https://helm.sh/)
 
+7. Разверните PostgreSQL в кластере:
 
-Сохраните пароль в переменной окружения POSTGRES_PASSWORD
-```
-export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
-```
-Чтобы подключиться к вашей базе данных, выполните следующую команду:
-```
-kubectl run postgres-postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:16.1.0-debian-11-r20 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
-      --command -- psql --host postgres-postgresql -U postgres -d postgres -p 5432
-```
-Создайте БД и пользователя в PostgreSQL:
+    ```bash
+    helm repo add bitnami https://charts.bitnami.com/bitnami
+    helm install postgres bitnami/postgresql
+    ```
 
-Данные для БД возьмите из переменной DATABASE_URL в .env файле
-```
-create database Имя_вашей_бд;
-create user ваш_логин with encrypted password 'пароль_пользователя';
-grant all privileges on database Имя_вашей_бд to ваш_логин;
-ALTER DATABASE Имя_вашей_бд OWNER TO ваш_логин;
-```
-Получите IP адрес из команды kubectl cluster-info
-```
-Добавить в конец
-Например 192.168.49.2 star-burger.test
-В файл
-/etc/hosts
-```
+    В качестве хоста БД используйте:
 
-Создайте ConfigMap в Kubernetes:
-```
-kubectl create configmap django-config --from-file=/путь до файла/.env
-(Укажите полный путь до .env файла /opt/project/.env)
-```
-Создайте манифесты Deployment, Service, ingress, Jobs для очистки сессий и миграций :
-```
-kubectl apply -f deployment.yaml -f django-service.yaml -f ingress.yaml -f django-clearsessions.yaml -f migrate-job.yaml 
-```
+    ```bash
+    postgres.default.svc.cluster.local
+    ```
+
+    Добавьте его в `DATABASE_URL` файла `.env`.
+
+8. Сохраните пароль в переменной окружения `POSTGRES_PASSWORD`:
+
+    ```bash
+    export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
+    ```
+
+    Чтобы подключиться к вашей базе данных, выполните следующую команду:
+
+    ```bash
+    kubectl run postgres-postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:16.1.0-debian-11-r20 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
+          --command -- psql --host postgres-postgresql -U postgres -d postgres -p 5432
+    ```
+
+9. Создайте БД и пользователя в PostgreSQL:
+
+    ```sql
+    create database Имя_вашей_бд;
+    create user ваш_логин with encrypted password 'пароль_пользователя';
+    grant all privileges on database Имя_вашей_бд to ваш_логин;
+    ALTER DATABASE Имя_вашей_бд OWNER TO ваш_логин;
+    ```
+
+    Замените `Имя_вашей_бд` и `ваш_логин` на соответствующие значения.
+
+10. Получите IP-адрес из команды `minikube cluster-info` и добавьте его в файл `/etc/hosts`.
+
+11. Создайте ConfigMap в Kubernetes:
+
+    ```bash
+    kubectl apply -f k8s/configmap.yaml
+    ```
+
+12. Создайте манифесты Deployment, Service, Ingress, Secrets, Jobs для очистки сессий и миграций:
+
+    ```bash
+    kubectl apply -f k8s/deployment.yaml -f k8s/django-service.yaml -f k8s/ingress.yaml -f django-secrets-env-file.yaml -f k8s/django-clearsessions.yaml -f k8s/migrate-job.yaml 
+    ```
+
+## ConfigMap и Secrets
+
+- **ConfigMap:**
+
+    ConfigMap включает в себя следующие переменные.
+
+    Замените на ваши из .env файла
+
+    ```
+      DEBUG: "True"
+      ALLOWED_HOSTS: "127.0.0.1,192.168.0.87,star-burger.test"
+    ```
+
+- **Secret:**
+
+    Secret включает в себя баз64-закодированные значения для следующих переменных:
+
+    ```
+      DJANGO_SECRET_KEY: <base64-encoded-secret-key>
+      DATABASE_URL: <base64-encoded-database-url>
+    ```
+  Замените на ваши переменные из env файла и закодируйте их в base64
+  ```
+    echo -n "DJANGO_SECRET_KEY" | base64
+    echo -n "DATABASE_URL" | base64
+  ```
 
 ## Примечания
 
-После изменения переменных окружения необходимо перезапустить под:
-```
-kubectl delete configmap django-config
-kubectl create configmap django-config --from-file=/путь до файла/.env
-kubectl rollout restart deployment django
-```
+- После изменения переменных окружения необходимо перезапустить под:
+
+    ```bash
+    kubectl delete configmap django-config
+    kubectl apply -f k8s/configmap.yaml
+    kubectl rollout restart deployment django
+    ```
